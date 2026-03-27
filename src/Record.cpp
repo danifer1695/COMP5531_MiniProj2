@@ -1,6 +1,6 @@
 #include "../include/Record.h"
 
-//overloaded "<" operator
+//Constructor
 //======================================================================================
 Record::Record()
 {
@@ -81,7 +81,7 @@ bool Record::isEmpty() const
 	//check every character in 'data'
 	for (int i = 0; i < SIZE; i++)
 	{
-		if (data[i] != '0') return false;
+		if (data[i] != '0') return false;	//maybe '\0' (terminal character)?
 	}
 
 	return true;

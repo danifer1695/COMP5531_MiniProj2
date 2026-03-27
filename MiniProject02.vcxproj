@@ -123,10 +123,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\DiskManager.h" />
     <ClInclude Include="include\Record.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\DiskManager.cpp" />
     <ClCompile Include="src\Record.cpp" />
+    <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

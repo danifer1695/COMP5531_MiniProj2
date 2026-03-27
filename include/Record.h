@@ -20,13 +20,15 @@ struct Record
 
 	char data[SIZE];	//actual content of the tuple, formated as a C-style string (an array of chars)
 
+	int a = 4;
+	int b = 8;
 	//Constructor declarations
 	//======================================================================================
 	Record();
-
+	 
 	//Function declarations
 	//======================================================================================
-	//Overloaded operators
+	//Overridden operators
 	bool operator<	(const Record& other) const;
 	bool operator==	(const Record& other) const;
 	bool operator>	(const Record& other) const;
@@ -51,5 +53,3 @@ struct Record
 	bool isEmpty() const;
 
 };
-
-
