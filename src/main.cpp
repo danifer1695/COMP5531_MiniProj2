@@ -61,18 +61,18 @@ struct LongRun
 	//CLose file on destroy if its still open
 	~LongRun() { if(file != nullptr) std::fclose(file); }
 
-	bool Open(const std::string& path, const int& M)
+	bool Open(const std::string& path, const int& recordNum)
 	{
 		file = std::fopen(path.c_str(), "rb");
 		if (!file) return false;
-		return Refill(M);
+		return Refill(recordNum);
 	}
 
 	//Load next block from memory into buffer
-	bool Refill(const int& M)
+	bool Refill(const int& recordNum)
 	{
 		buffer.data.clear();
-		size_t count = ReadBlock(buffer, file, RECORDS_PER_BLOCK * M);
+		size_t count = ReadBlock(buffer, file, recordNum);
 		//if file is exhausted, close it
 		if (count == 0)
 		{
@@ -87,7 +87,7 @@ struct LongRun
 	const Record& GetFirst() const { return buffer.data.front(); }
 
 	//Pop first record into outBlock, refill if buffer is empty
-	void PopInto(Block& outBlock, const int& M)
+	void PopInto(Block& outBlock, const int& refillNum)
 	{
 		outBlock.data.push_back(buffer.data.front());
 		buffer.data.erase(buffer.data.begin());
@@ -95,7 +95,7 @@ struct LongRun
 		//Once the buffer is drained, reload the next batch from disk
 		if (buffer.data.empty())
 		{
-			Refill(M);
+			Refill(refillNum);
 		}
 	}
 
@@ -216,7 +216,7 @@ std::string Phase2(std::vector<std::string> runPaths, const int& M, const std::s
 			size_t count = std::min((size_t)(M - 1), runPaths.size() - runsOpened);
 			std::vector<LongRun> runs(count);
 			for (size_t j = 0; j < count; j++)
-				runs[j].Open(runPaths[runsOpened + j], M);
+				runs[j].Open(runPaths[runsOpened + j], RECORDS_PER_BLOCK);
 
 			//Create output file for this merged group
 			std::string outPath =
@@ -288,7 +288,7 @@ size_t MergeRuns(std::vector<LongRun>& runs, Block& outBlock, FILE* outFile, con
 		}
 
 		//Pop smallest record into out block
-		runs[smallest].PopInto(outBlock, M);
+		runs[smallest].PopInto(outBlock, RECORDS_PER_BLOCK * M);
 
 		//if run is fully exhausted, remove it
 		if (runs[smallest].IsExhausted()) runs.erase(runs.begin() + smallest);
@@ -423,8 +423,6 @@ void BagJoin(std::string& inPath, const std::string& outPath)
 //=====================================================================================================
 int main()
 {
-	std::string R1 = "../data/T1_records.txt";
-	std::string R2 = "../data/T2_records.txt";
 	std::string OUT_RUNS = "../tmp/";
 	std::string OUT = "../output/";
 
@@ -432,9 +430,11 @@ int main()
 	//Test: 30000 records, M = 101
 	//=======================================================
 	{
-		std::cout << "==============================================" << std::endl;
+		std::string R1 = "../data/T1_15000.txt";
+		std::string R2 = "../data/T2_15000.txt";
 		int M = 101;
 
+		std::cout << "==============================================" << std::endl;
 		std::vector<std::string> sortedRuns;
 
 		auto begin = std::chrono::high_resolution_clock::now();
@@ -458,12 +458,45 @@ int main()
 	}
 
 	//=======================================================
+	//Test: 120000 records, M = 101
+	//=======================================================
+	{
+		std::string R1 = "../data/T1_120000.txt";
+		std::string R2 = "../data/T2_120000.txt";
+		int M = 101;
+
+		std::cout << "\n==============================================" << std::endl;
+		std::vector<std::string> sortedRuns;
+
+		auto begin = std::chrono::high_resolution_clock::now();
+
+		std::string sortedR1 = TPMMS(M, R1, OUT_RUNS);
+		std::string sortedR2 = TPMMS(M, R2, OUT_RUNS);
+
+		sortedRuns.push_back(sortedR1);
+		sortedRuns.push_back(sortedR2);
+
+		std::string finalSorted = Phase2(sortedRuns, M, OUT, "120K_101M");
+
+		auto end = std::chrono::high_resolution_clock::now();
+		float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0f;
+
+		std::cout << "\nRecords processed: " << CountRecords(finalSorted) << std::endl;
+		std::cout << "M: " << M << std::endl;
+		std::cout << "Time elapsed: " << elapsed << "seconds" << std::endl;
+
+		BagJoin(finalSorted, OUT + "120K_101M.txt");
+	}
+
+	//=======================================================
 	//Test: 30000 records, M = 5
 	//=======================================================
 	{
-		std::cout << "\n==============================================" << std::endl;
+		std::string R1 = "../data/T1_15000.txt";
+		std::string R2 = "../data/T2_15000.txt";
 		int M = 5;
 
+		std::cout << "\n==============================================" << std::endl;
 		std::vector<std::string> sortedRuns;
 
 		auto begin = std::chrono::high_resolution_clock::now();
@@ -484,6 +517,37 @@ int main()
 		std::cout << "Time elapsed: " << elapsed << "seconds" << std::endl;
 
 		BagJoin(finalSorted, OUT + "30K_5M.txt");
+	}
+
+	//=======================================================
+	//Test: 120000 records, M = 5
+	//=======================================================
+	{
+		std::string R1 = "../data/T1_120000.txt";
+		std::string R2 = "../data/T2_120000.txt";
+		int M = 5;
+
+		std::cout << "\n==============================================" << std::endl;
+		std::vector<std::string> sortedRuns;
+
+		auto begin = std::chrono::high_resolution_clock::now();
+
+		std::string sortedR1 = TPMMS(M, R1, OUT_RUNS);
+		std::string sortedR2 = TPMMS(M, R2, OUT_RUNS);
+
+		sortedRuns.push_back(sortedR1);
+		sortedRuns.push_back(sortedR2);
+
+		std::string finalSorted = Phase2(sortedRuns, M, OUT, "120K_5M");
+
+		auto end = std::chrono::high_resolution_clock::now();
+		float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0f;
+
+		std::cout << "\nRecords processed: " << CountRecords(finalSorted) << std::endl;
+		std::cout << "M: " << M << std::endl;
+		std::cout << "Time elapsed: " << elapsed << "seconds" << std::endl;
+
+		BagJoin(finalSorted, OUT + "120K_5M.txt");
 	}
 	return 0;
 }
