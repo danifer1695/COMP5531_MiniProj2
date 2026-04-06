@@ -1,4 +1,18 @@
-﻿  Record.cpp
+﻿  IOManager.cpp
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\IOManager.cpp(113,17): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\IOManager.cpp(138,17): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  Record.cpp
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\Record.cpp(68,21): error C2039: 'GetStudentID': is not a member of 'Record'
+      C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\include\Record.h(17,8):
+      see declaration of 'Record'
+  
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\Record.cpp(68,21): error C2270: 'GetStudentID': modifiers not allowed on nonmember functions
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\Record.cpp(73,37): error C2065: 'data': undeclared identifier
   main.cpp
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\main.cpp(25,21): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  TPMMS.cpp
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\TPMMS.cpp(35,22): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\TPMMS.cpp(65,24): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\TPMMS.cpp(143,23): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\MiniProject02\src\TPMMS.cpp(187,19): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   Generating Code...
-  MiniProject02.vcxproj -> C:\Users\danif\Dropbox\2024-2025 Career Change\Course Contents\COMP5531\MiniProject02\MiniProject02\x64\Debug\MiniProject02.exe

@@ -123,13 +123,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\DiskManager.h" />
+    <ClInclude Include="include\IOManager.h" />
     <ClInclude Include="include\Record.h" />
+    <ClInclude Include="include\TPMMS.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\DiskManager.cpp" />
+    <ClCompile Include="src\IOManager.cpp" />
     <ClCompile Include="src\Record.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\TPMMS.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Makefile" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
