@@ -34,7 +34,7 @@ TEST_SIZE testSize = SMALL;
 struct Record
 {
     char data[BYTES_PER_RECORD];	//actual content of the tuple, formated as a C-style string (an array of chars)
-    Record() {std::memset(data, '0', BYTES_PER_RECORD); }
+    Record() {std::memset(data, ' ', BYTES_PER_RECORD); }
 
     //overridden < operator to be able to use on std::sort
     bool operator<(const Record& other) const {return std::memcmp(data, other.data, BYTES_PER_RECORD) < 0;}
@@ -45,7 +45,7 @@ struct Record
     //Check if empty
     bool isEmpty() const {
         for (int i = 0; i < BYTES_PER_RECORD; i++) {
-            if (data[i] != '0') return false;
+            if (data[i] != ' ') return false;
         }
         return true;
     };
@@ -100,7 +100,6 @@ std::vector<RunInfo> mergePass(const std::vector<RunInfo>& inputRuns, const std:
 RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string& prefix);
 
 // ---- Bag Union ----
-
 int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord);
 void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count);
 void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::string& outputFilename);
@@ -235,10 +234,10 @@ int main(int argc, char* argv[])
 // parseRecordFromLine
 Record parseRecordFromLine(const std::string& line)
 {
-    Record r;
+    Record r = Record();
 
-    // Fill with spaces
-    memset(r.data, ' ', BYTES_PER_RECORD);
+    // Fill with spaces (filled in Record consrtuctor)
+    //memset(r.data, ' ', BYTES_PER_RECORD);
 
     // Determine how many bytes we can safely copy
     int bytesToCopy = std::min((int)line.size(), BYTES_PER_RECORD);
