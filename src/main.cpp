@@ -194,15 +194,18 @@ int main(int argc, char* argv[])
     std::string R1_path;
     std::string R2_path;
 
-    //Records: 30000, M: 101
-    R1_path = "../data/T1_15000.txt";
-    R2_path = "../data/T2_15000.txt";
-    Test(R1_path, R2_path, 101, 30000);
+    if(testSize == SMALL)
+    {
+        //Records: 30000, M: 101
+        R1_path = "../data/T1_15000.txt";
+        R2_path = "../data/T2_15000.txt";
+        Test(R1_path, R2_path, 101, 30000);
+    
+        //Records: 30000, M: 5
+        Test(R1_path, R2_path, 5, 30000);
+    }
 
-    //Records: 30000, M: 5
-    Test(R1_path, R2_path, 5, 30000);
-
-    if(testSize == MEDIUM || testSize == LARGE)
+    if(testSize == MEDIUM)
     {
         //Records: 240000, M: 101
         R1_path = "../data/T1_120000.txt";
