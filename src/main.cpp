@@ -22,6 +22,8 @@ enum TEST_SIZE
 
 constexpr int RECORDS_PER_BLOCK = 40;
 constexpr int BYTES_PER_RECORD = 100;
+
+//Testing conditions
 bool cleanTemps = true;
 bool logProgress = true;
 TEST_SIZE testSize = SMALL;
@@ -38,17 +40,6 @@ struct Record
 
     //overridden < operator to be able to use on std::sort
     bool operator<(const Record& other) const {return std::memcmp(data, other.data, BYTES_PER_RECORD) < 0;}
-
-    //to c++ string
-    std::string toString() const { return std::string(data, BYTES_PER_RECORD); }
-
-    //Check if internal buffer 'data' is empty
-    bool isEmpty() const {
-        for (int i = 0; i < BYTES_PER_RECORD; i++) {
-            if (data[i] != ' ') return false;
-        }
-        return true;
-    };
 };
 
 struct Block
@@ -142,6 +133,7 @@ void Test(const std::string& R1Path, const std::string& R2Path, const int& M, co
     std::string outputFile = "../output/" + outFile + ".txt";
     bagUnion(sortedR1, sortedR2, outputFile);
     
+    //end timer
     auto end = std::chrono::high_resolution_clock::now();
     float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0f;
     
