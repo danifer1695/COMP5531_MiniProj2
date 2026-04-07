@@ -217,10 +217,10 @@ int main(int argc, char* argv[])
         //Records: 240000, M: 101
         R1_path = "../data/T1_960000.txt";
         R2_path = "../data/T2_960000.txt";
-        Test(R1_path, R2_path, 101, 960000);
+        Test(R1_path, R2_path, 101, 1920000);
 
         //Records: 240000, M: 5
-        Test(R1_path, R2_path, 5, 960000);
+        Test(R1_path, R2_path, 5, 1920000);
     }
 
     return 0;
