@@ -4,40 +4,41 @@
 #include <string>       // string
 #include <algorithm>    // sort
 #include <cstring>      // memset, memcpy
-
-
-#include "../include/Record.h"
-
 #include <filesystem>
+
 namespace fs = std::filesystem;
-
-using namespace std;
-
-
-// ======================================================
-// Overview
-// ======================================================
-
 
 // ======================================================
 // Constants
 // ======================================================
 
-const int RECORDS_PER_BLOCK = 40;
+constexpr int RECORDS_PER_BLOCK = 40;
+constexpr int BYTES_PER_RECORD = 100;
+
 
 // ======================================================
 // Data Structures
 // ======================================================
 
+struct Record
+{
+    char data[BYTES_PER_RECORD];	//actual content of the tuple, formated as a C-style string (an array of chars)
+    Record() {std::memset(data, 0, BYTES_PER_RECORD);}
+
+    //overridden < operator to be able to use on std::sort
+    bool operator<(const Record& other) const {return std::memcmp(data, other.data, SIZE) < 0;}
+
+    //to c++ string
+    std::string toString() const { return std::string(data, SIZE); }
+
+    //Check if empty
+    bool isEmpty() const;
+};
 
 struct Block
 {
-    static const int RECORDS_PER_BLOCK = 40;
     Record records[RECORDS_PER_BLOCK];
     int count = 0;
-
-    // for testing purposes
-    static const int MAX = 2;
 };
 
 struct RunInfo
@@ -69,29 +70,29 @@ struct CompactBlock
 Record parseRecordFromLine(const string& line);
 
 // ---- Phase 1 ----
-bool readBlock(ifstream& inputFile, Block& block);
-vector<Record> readChunk(ifstream& inputFile, int memoryBlockLimit);
-void sortChunk(vector<Record>& chunk);
-RunInfo writeRun(const vector<Record>& chunk, int runNumber, const string& prefix);
-vector<RunInfo> createInitialRuns(const string& inputFilename, int memoryBlockLimit, const string& prefix);
+bool readBlock(std::ifstream& inputFile, Block& block);
+vector<Record> readChunk(std::ifstream& inputFile, int memoryBlockLimit);
+void sortChunk(std::vector<Record>& chunk);
+RunInfo writeRun(const std::vector<Record>& chunk, int runNumber, const string& prefix);
+vector<RunInfo> createInitialRuns(const std::string& inputFilename, int memoryBlockLimit, const string& prefix);
 
 // ---- Phase 1 ----
-bool readNextBlockFromRun(ifstream& runFile, Block& block);
-bool getNextRecordFromRun(ifstream& runFile, Block& block, int& blockIndex, Record& record);
-RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const string& prefix, int passNumber, int outputRunNumber);
-vector<RunInfo> mergePass(const vector<RunInfo>& inputRuns, const string& prefix, int passNumber);
-RunInfo mergeAllRuns(const vector<RunInfo>& initialRuns, const string& prefix);
+bool readNextBlockFromRun(std::ifstream& runFile, Block& block);
+bool getNextRecordFromRun(std::ifstream& runFile, Block& block, int& blockIndex, Record& record);
+RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string& prefix, int passNumber, int outputRunNumber);
+vector<RunInfo> mergePass(const std::vector<RunInfo>& inputRuns, const std::string& prefix, int passNumber);
+RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string& prefix);
 
 // ---- Bag Union ----
 
-int countCurrentRunCopies(ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord);
-void writeCompactRecord(ofstream& outFile, const Record& record, int count);
-void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const string& outputFilename);
+int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord);
+void writeCompactRecord(std::ofstream& outFile, const Record& record, int count);
+void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::string& outputFilename);
 
 //helpers
 CompactRecord makeCompactRecord(const Record& record, int count);
-void flushCompactBlock(ofstream& outFile, CompactBlock& block);
-void appendCompactRecord(ofstream& outFile, CompactBlock& block, const Record& record, int count);
+void flushCompactBlock(std::ofstream& outFile, CompactBlock& block);
+void appendCompactRecord(std::ofstream& outFile, CompactBlock& block, const Record& record, int count);
 
 
 // ======================================================
@@ -115,7 +116,7 @@ int main()
 
     // Phase 1 + Phase 2 for R1
     cout << "Processing R1..." << endl;
-    vector<RunInfo> initialRunsR1 = createInitialRuns(inputFileR1, memoryBlockLimit, "R1");
+    std::vector<RunInfo> initialRunsR1 = createInitialRuns(inputFileR1, memoryBlockLimit, "R1");
     RunInfo sortedR1 = mergeAllRuns(initialRunsR1, "R1");
     cout << "R1 fully sorted into file: " << sortedR1.filename << endl;
 
@@ -162,12 +163,12 @@ Record parseRecordFromLine(const string& line)
 
 
 //readBlock
-bool readBlock(ifstream& inputFile, Block& block)
+bool readBlock(std::ifstream& inputFile, Block& block)
 {
     // Reset block
     block.count = 0;
 
-    string line;
+    std::string line;
 
     // Read until block full OR file ends
     while (block.count < RECORDS_PER_BLOCK && getline(inputFile, line))
@@ -187,7 +188,7 @@ bool readBlock(ifstream& inputFile, Block& block)
 }
 //readChunk
 
-vector<Record> readChunk(ifstream& inputFile, int memoryBlockLimit)
+std::vector<Record> readChunk(std::ifstream& inputFile, int memoryBlockLimit)
 {
     vector<Record> chunk;
 
@@ -216,12 +217,10 @@ vector<Record> readChunk(ifstream& inputFile, int memoryBlockLimit)
     return chunk;
 }
 
-
-
 //sortChunk
-void sortChunk(vector<Record>& chunk)
+void sortChunk(std::vector<Record>& chunk)
 {
-    sort(chunk.begin(), chunk.end());
+    std::sort(chunk.begin(), chunk.end());
 }
 
 //writeRun
@@ -230,13 +229,13 @@ RunInfo writeRun(const vector<Record>& chunk, int runNumber, const string& prefi
     RunInfo run;
 
     run.runNumber = runNumber;
-    run.filename = "runs/" + prefix + "/" + prefix + "_run_" + to_string(runNumber) + ".txt";
+    run.filename = "runs/" + prefix + "/" + prefix + "_run_" + std::to_string(runNumber) + ".txt";
 
-    ofstream outputFile(run.filename);
+    std::ofstream outputFile(run.filename);
 
     if (!outputFile)
     {
-        cerr << "Error: could not create " << run.filename << endl;
+        std::cerr << "Error: could not create " << run.filename << std::endl;
         return run;
     }
 
@@ -246,7 +245,7 @@ RunInfo writeRun(const vector<Record>& chunk, int runNumber, const string& prefi
         outputFile << '\n';
     }
 
-    cout << "Writing " << run.filename << " with " << chunk.size() << " records\n";
+    std::cout << "Writing " << run.filename << " with " << chunk.size() << " records\n";
 
     outputFile.close();
     return run;
@@ -254,15 +253,15 @@ RunInfo writeRun(const vector<Record>& chunk, int runNumber, const string& prefi
 
 
 //createInitialRuns
-vector<RunInfo> createInitialRuns(const string& inputFilename, int memoryBlockLimit, const string& prefix)
+std::vector<RunInfo> createInitialRuns(const string& inputFilename, int memoryBlockLimit, const string& prefix)
 {
     vector<RunInfo> runs;
 
-    ifstream inputFile(inputFilename);
+    std::ifstream inputFile(inputFilename);
 
     if (!inputFile)
     {
-        cerr << "Error: could not open " << inputFilename << endl;
+        std::cerr << "Error: could not open " << inputFilename << endl;
         return runs;
     }
 
@@ -270,14 +269,14 @@ vector<RunInfo> createInitialRuns(const string& inputFilename, int memoryBlockLi
 
     while (true)
     {
-        vector<Record> chunk = readChunk(inputFile, memoryBlockLimit);
+        std::vector<Record> chunk = readChunk(inputFile, memoryBlockLimit);
 
         if (chunk.empty())
         {
             break;
         }
 
-        cout << prefix << " chunk size: " << chunk.size() << endl;
+        std::cout << prefix << " chunk size: " << chunk.size() << std::endl;
 
         sortChunk(chunk);
 
@@ -297,20 +296,18 @@ vector<RunInfo> createInitialRuns(const string& inputFilename, int memoryBlockLi
 // ======================================================
 
 
-bool readNextBlockFromRun(ifstream& runFile, Block& block)
+bool readNextBlockFromRun(std::ifstream& runFile, Block& block)
 {
     // 1. reset block.count
     block.count = 0;
 
     // 2. create string line
-    string line;
+    std::string line;
 
     // 3. loop:
     //    while block not full AND getline succeeds
 
-    while (block.count < Block::RECORDS_PER_BLOCK && getline(runFile, line)){
-
-    
+    while (block.count < Block::RECORDS_PER_BLOCK && getline(runFile, line))
     {   
         // 4. parse line into Record
         Record r = parseRecordFromLine(line);
@@ -321,13 +318,11 @@ bool readNextBlockFromRun(ifstream& runFile, Block& block)
         // 6. increment count
         block.count++;
     }
-    
-    }
     return block.count > 0;
 
 }
 
-bool getNextRecordFromRun(ifstream& runFile, Block& block, int& index, Record& record)
+bool getNextRecordFromRun(std::ifstream& runFile, Block& block, int& index, Record& record)
 {
     // If current block is exhausted, load next block
     if (index >= block.count)
@@ -357,26 +352,26 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const string& pre
     outputRun.runNumber = outputRunNumber;
     outputRun.filename = "runs/merged/" + prefix + "_pass_" + to_string(passNumber) + "_run_" + to_string(outputRunNumber) + ".txt";
 
-    ifstream fileA(runA.filename);
-    ifstream fileB(runB.filename);
+    std::ifstream fileA(runA.filename);
+    std::ifstream fileB(runB.filename);
 
     if (!fileA)
     {
-        cerr << "Error: could not open " << runA.filename << endl;
+        std::cerr << "Error: could not open " << runA.filename << std::endl;
         return outputRun;
     }
 
     if (!fileB)
     {
-        cerr << "Error: could not open " << runB.filename << endl;
+        std::cerr << "Error: could not open " << runB.filename << std::endl;
         return outputRun;
     }
 
-    ofstream outFile(outputRun.filename);
+    std::ofstream outFile(outputRun.filename);
 
     if (!outFile)
     {
-        cerr << "Error: could not create " << outputRun.filename << endl;
+        std::cerr << "Error: could not create " << outputRun.filename << std::endl;
         return outputRun;
     }
 
@@ -429,9 +424,9 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const string& pre
     return outputRun;
 }
 
-vector<RunInfo> mergePass(const vector<RunInfo>& inputRuns, const string& prefix, int passNumber)
+std::vector<RunInfo> mergePass(const vector<RunInfo>& inputRuns, const string& prefix, int passNumber)
 {
-    vector<RunInfo> outputRuns;
+    std::vector<RunInfo> outputRuns;
     int outputRunNumber = 0;
 
     for (int i = 0; i < inputRuns.size(); i += 2)
@@ -451,14 +446,14 @@ vector<RunInfo> mergePass(const vector<RunInfo>& inputRuns, const string& prefix
     return outputRuns;
 }
 
-RunInfo mergeAllRuns(const vector<RunInfo>& initialRuns, const string& prefix)
+RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const string& prefix)
 {
-    vector<RunInfo> currentRuns = initialRuns;
+    std::vector<RunInfo> currentRuns = initialRuns;
     int passNumber = 0;
 
     while (currentRuns.size() > 1)
     {
-        cout << prefix << " pass " << passNumber << ": " << currentRuns.size() << " runs\n";
+        std::cout << prefix << " pass " << passNumber << ": " << currentRuns.size() << " runs\n";
         currentRuns = mergePass(currentRuns, prefix, passNumber);
         passNumber++;
     }
@@ -479,7 +474,7 @@ RunInfo mergeAllRuns(const vector<RunInfo>& initialRuns, const string& prefix)
 // ======================================================
 
 
-int countCurrentRunCopies(ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord)
+int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord)
 {
     // currentRecord is the first copy
     Record target = currentRecord;
@@ -498,10 +493,10 @@ int countCurrentRunCopies(ifstream& runFile, Block& block, int& index, Record& c
     return count;
 }
 
-void writeCompactRecord(ofstream& outFile, const Record& record, int count)
+void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count)
 {
     // Write the full 100-byte record
-    outFile.write(record.data, Record::SIZE);
+    std::outFile.write(record.data, Record::SIZE - 1);
 
     // Separator between tuple and count
     outFile << ":";
@@ -515,25 +510,25 @@ void writeCompactRecord(ofstream& outFile, const Record& record, int count)
 
 void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const string& outputFilename)
 {
-    ifstream fileR1(sortedR1.filename);
-    ifstream fileR2(sortedR2.filename);
-    ofstream outFile(outputFilename);
+    std::ifstream fileR1(sortedR1.filename);
+    std::ifstream fileR2(sortedR2.filename);
+    std::ofstream outFile(outputFilename);
 
     if (!fileR1)
     {
-        cerr << "Error: could not open " << sortedR1.filename << endl;
+        std::cerr << "Error: could not open " << sortedR1.filename << std::endl;
         return;
     }
 
     if (!fileR2)
     {
-        cerr << "Error: could not open " << sortedR2.filename << endl;
+        std::cerr << "Error: could not open " << sortedR2.filename << std::endl;
         return;
     }
 
     if (!outFile)
     {
-        cerr << "Error: could not create " << outputFilename << endl;
+        std::cerr << "Error: could not create " << outputFilename << std::endl;
         return;
     }
 
@@ -606,24 +601,24 @@ void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const string& ou
 }
 
 // helper functions
-CompactRecord makeCompactRecord(const Record& record, int count)
+CompactRecord makeCompactRecord(const Record& record, int& count)
 {
     CompactRecord cr;
     cr.data = string(record.data, Record::SIZE) + ":" + to_string(count);
     return cr;
 }
 
-void flushCompactBlock(ofstream& outFile, CompactBlock& block)
+void flushCompactBlock(std::ofstream& outFile, CompactBlock& block)
 {
     for (int i = 0; i < block.count; i++)
     {
-        outFile << block.records[i].data << '\n';
+        std::outFile << block.records[i].data << '\n';
     }
 
     block.count = 0;
 }
 
-void appendCompactRecord(ofstream& outFile, CompactBlock& block, const Record& record, int count)
+void appendCompactRecord(std::ofstream& outFile, CompactBlock& block, const Record& record, int& count)
 {
     block.records[block.count] = makeCompactRecord(record, count);
     block.count++;
