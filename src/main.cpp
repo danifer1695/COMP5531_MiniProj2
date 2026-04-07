@@ -148,7 +148,7 @@ void Test(const std::string& R1Path, const std::string& R2Path, const int& M, co
     
     std::cout << "Bag union complete. Output written to: " << outputFile << std::endl;
     std::cout << "\nTesting Complete - Records: " << totalRecords << " - M: " << M << std::endl;
-    std::cout << "Total elapsed time: " << elapsed << "seconds" << std::endl;
+    std::cout << "Total elapsed time: " << elapsed << " seconds" << std::endl;
     std::cout << "==============================================================================" << std::endl;
 }
 
@@ -699,6 +699,8 @@ void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::strin
 
     fileR1.close();
     fileR2.close();
+    if(cleanTemps) std::remove(sortedR1.filename.c_str());
+    if(cleanTemps) std::remove(sortedR2.filename.c_str());
     outFile.close();
 }
 
