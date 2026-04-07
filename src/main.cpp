@@ -5,6 +5,8 @@
 #include <algorithm>    // sort
 #include <cstring>      // memset, memcpy
 #include <filesystem>
+#include <chrono>
+#include <cstdio>
 
 // ======================================================
 // Constants
@@ -12,6 +14,8 @@
 
 constexpr int RECORDS_PER_BLOCK = 40;
 constexpr int BYTES_PER_RECORD = 100;
+bool cleanTemps = true;
+bool logProgress = true;
 
 
 // ======================================================
@@ -98,54 +102,103 @@ void flushCompactBlock(std::ofstream& outFile, CompactBlock& block);
 void appendCompactRecord(std::ofstream& outFile, CompactBlock& block, const Record& record, int count);
 
 
-void Test(const std::string& R1Path, const std::string& R2Path, const int& M)
+void Test(const std::string& R1Path, const std::string& R2Path, const int& M, const int& totalRecords)
 {
     // set up file system output folders
-    std::cout << "=======================================" << std::endl;
-    std::filesystem::create_directory("runs");
-    std::filesystem::create_directory("runs/R1");
-    std::filesystem::create_directory("runs/R2");
-    std::filesystem::create_directory("runs/merged");
-    std::filesystem::create_directory("output");
-
+    std::cout << "==============================================================================" << std::endl;
+    std::filesystem::create_directory("../runs");
+    std::filesystem::create_directory("../runs/R1");
+    std::filesystem::create_directory("../runs/R2");
+    std::filesystem::create_directory("../runs/merged");
+    std::filesystem::create_directory("../output");
+    
+    //start timer
+    auto begin = std::chrono::high_resolution_clock::now();
+    
     // Phase 1 + Phase 2 for R1
-    std::cout << "Processing R1..." << std::endl;
+    if(logProgress) std::cout << "Processing R1..." << std::endl;
+    if(logProgress) std::cout << "Chunk size: " << M * RECORDS_PER_BLOCK << std::endl;
     std::vector<RunInfo> initialRunsR1 = createInitialRuns(R1Path, M, "R1");
     RunInfo sortedR1 = mergeAllRuns(initialRunsR1, "R1");
-    std::cout << "R1 fully sorted into file: " << sortedR1.filename << std::endl;
-
+    std::cout << "\nR1 fully sorted into file: " << sortedR1.filename << std::endl;
+    
     // Phase 1 + Phase 2 for R2
-    std::cout << "\nProcessing R2..." << std::endl;
+    if(logProgress) std::cout << "\nProcessing R2..." << std::endl;
+    if(logProgress) std::cout << "Chunk size: " << M * RECORDS_PER_BLOCK << std::endl;
     std::vector<RunInfo> initialRunsR2 = createInitialRuns(R2Path, M, "R2");
     RunInfo sortedR2 = mergeAllRuns(initialRunsR2, "R2");
     std::cout << "R2 fully sorted into file: " << sortedR2.filename << std::endl;
-
+    
     // Final bag union
-    std::cout << "\nPerforming bag union..." << std::endl;
-    std::string outputFile = "output/bag_union_output.txt";
+    if(logProgress) std::cout << "\nPerforming bag union..." << std::endl;
+    std::string outFile = "R" + std::to_string(totalRecords) + "M" + std::to_string(M);
+    std::string outputFile = "../output/" + outFile + ".txt";
     bagUnion(sortedR1, sortedR2, outputFile);
-
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0f;
+    
     std::cout << "Bag union complete. Output written to: " << outputFile << std::endl;
+    std::cout << "\nTesting Complete - Records: " << totalRecords << " - M: " << M << std::endl;
+    std::cout << "Total elapsed time: " << elapsed << "seconds" << std::endl;
+    std::cout << "==============================================================================" << std::endl;
 }
 
 // ======================================================
+// Process Arguments
+// ======================================================
+
+void ProcessArgs(int argc, char* argv[])
+{
+    //arg[0] is the program name "./main.exe"
+    if(argc > 1)
+    {
+        std::string cleanup = argv[1];
+        if(cleanup == "cleanup") cleanTemps = true;
+        else if(cleanup == "no-cleanup") cleanTemps = false;
+        else std::cout << "Invalid argument [1]" << std::endl;
+    }
+
+    if(argc > 2)
+    {
+        std::string cleanup = argv[2];
+        if(cleanup == "log") logProgress = true;
+        else if(cleanup == "no-log") logProgress = false;
+        else std::cout << "Invalid argument [2]" << std::endl;
+    }
+}
+// ======================================================
 // Main
 // ======================================================
-int main()
+int main(int argc, char* argv[])
 {
-    std::cout << "Hello" << std::endl;
+    ProcessArgs(argc, argv);
     std::string R1_path;
     std::string R2_path;
 
     //Records: 30000, M: 101
     R1_path = "../data/T1_15000.txt";
     R2_path = "../data/T2_15000.txt";
-    Test(R1_path, R2_path, 101);
+    Test(R1_path, R2_path, 101, 30000);
 
     //Records: 30000, M: 5
-    R1_path = "../data/T1_15000.txt";
-    R2_path = "../data/T2_15000.txt";
-    Test(R1_path, R2_path, 101);
+    Test(R1_path, R2_path, 5, 30000);
+
+    //Records: 240000, M: 101
+    R1_path = "../data/T1_120000.txt";
+    R2_path = "../data/T2_120000.txt";
+    Test(R1_path, R2_path, 101, 240000);
+
+    //Records: 240000, M: 5
+    Test(R1_path, R2_path, 5, 240000);
+
+    //Records: 240000, M: 101
+    R1_path = "../data/T1_960000.txt";
+    R2_path = "../data/T2_960000.txt";
+    //Test(R1_path, R2_path, 101, 960000);
+
+    //Records: 240000, M: 5
+    //Test(R1_path, R2_path, 5, 960000);
 
     return 0;
 }
@@ -241,7 +294,7 @@ RunInfo writeRun(
     RunInfo run;
 
     run.runNumber = runNumber;
-    run.filename = "runs/" + prefix + "/" + prefix + "_run_" + std::to_string(runNumber) + ".txt";
+    run.filename = "../runs/" + prefix + "/" + prefix + "_run_" + std::to_string(runNumber) + ".txt";
 
     std::ofstream outputFile(run.filename);
 
@@ -257,7 +310,7 @@ RunInfo writeRun(
         outputFile << '\n';
     }
 
-    std::cout << "Writing " << run.filename << " with " << chunk.size() << " records\n";
+    if(logProgress) std::cout << "Writing " << run.filename << " with " << chunk.size() << " records\n";
 
     outputFile.close();
     return run;
@@ -291,7 +344,7 @@ std::vector<RunInfo> createInitialRuns(
             break;
         }
 
-        std::cout << prefix << " chunk size: " << chunk.size() << std::endl;
+        //std::cout << prefix << " chunk size: " << chunk.size() << std::endl;
 
         sortChunk(chunk);
 
@@ -362,7 +415,7 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string
 {
     RunInfo outputRun;
     outputRun.runNumber = outputRunNumber;
-    outputRun.filename = "runs/merged/" + prefix + 
+    outputRun.filename = "../runs/merged/" + prefix + 
         "_pass_" + std::to_string(passNumber) + 
         "_run_" + std::to_string(outputRunNumber) + 
         ".txt";
@@ -432,8 +485,21 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string
         hasB = getNextRecordFromRun(fileB, blockB, indexB, recordB);
     }
 
+    //close files and clean up
     fileA.close();
     fileB.close();
+
+    if(cleanTemps){
+        if(std::remove(runA.filename.c_str()) == 0)
+        {
+        // std::cout << "Removed temp file " << runA.filename << std::endl;
+        }
+        if(std::remove(runB.filename.c_str()) == 0)
+        { 
+        //std::cout << "Removed temp file " << runB.filename << std::endl;
+        }
+    }
+
     outFile.close();
 
     return outputRun;
@@ -468,7 +534,7 @@ RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string&
 
     while (currentRuns.size() > 1)
     {
-        std::cout << prefix << " pass " << passNumber << ": " << currentRuns.size() << " runs\n";
+        if(logProgress) std::cout << prefix << " pass " << passNumber << ": " << currentRuns.size() << " runs\n";
         currentRuns = mergePass(currentRuns, prefix, passNumber);
         passNumber++;
     }
