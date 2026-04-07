@@ -67,20 +67,20 @@ struct CompactBlock
 // count tells us how many valid records are currently in it.
 
 // ---- Parsing ----
-Record parseRecordFromLine(const string& line);
+Record parseRecordFromLine(const std::string& line);
 
 // ---- Phase 1 ----
 bool readBlock(std::ifstream& inputFile, Block& block);
-vector<Record> readChunk(std::ifstream& inputFile, int memoryBlockLimit);
+std::vector<Record> readChunk(std::ifstream& inputFile, int memoryBlockLimit);
 void sortChunk(std::vector<Record>& chunk);
-RunInfo writeRun(const std::vector<Record>& chunk, int runNumber, const string& prefix);
-vector<RunInfo> createInitialRuns(const std::string& inputFilename, int memoryBlockLimit, const string& prefix);
+RunInfo writeRun(const std::vector<Record>& chunk, int runNumber, const std::string& prefix);
+std::vector<RunInfo> createInitialRuns(const std::string& inputFilename, int memoryBlockLimit, const std::string& prefix);
 
 // ---- Phase 1 ----
 bool readNextBlockFromRun(std::ifstream& runFile, Block& block);
 bool getNextRecordFromRun(std::ifstream& runFile, Block& block, int& blockIndex, Record& record);
 RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string& prefix, int passNumber, int outputRunNumber);
-vector<RunInfo> mergePass(const std::vector<RunInfo>& inputRuns, const std::string& prefix, int passNumber);
+std::vector<RunInfo> mergePass(const std::vector<RunInfo>& inputRuns, const std::string& prefix, int passNumber);
 RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string& prefix);
 
 // ---- Bag Union ----
@@ -106,32 +106,30 @@ int main()
     fs::create_directory("runs/R2");
     fs::create_directory("runs/merged");
     fs::create_directory("output");
-    
-
 
     // Input relation files
-    string inputFileR1 = "R1.txt";
-    string inputFileR2 = "R2.txt";
+    std::string inputFileR1 = "R1.txt";
+    std::string inputFileR2 = "R2.txt";
     int memoryBlockLimit = 5;
 
     // Phase 1 + Phase 2 for R1
-    cout << "Processing R1..." << endl;
+    std::cout << "Processing R1..." << std::endl;
     std::vector<RunInfo> initialRunsR1 = createInitialRuns(inputFileR1, memoryBlockLimit, "R1");
     RunInfo sortedR1 = mergeAllRuns(initialRunsR1, "R1");
-    cout << "R1 fully sorted into file: " << sortedR1.filename << endl;
+    std::cout << "R1 fully sorted into file: " << sortedR1.filename << std::endl;
 
     // Phase 1 + Phase 2 for R2
-    cout << "\nProcessing R2..." << endl;
-    vector<RunInfo> initialRunsR2 = createInitialRuns(inputFileR2, memoryBlockLimit, "R2");
+    std::cout << "\nProcessing R2..." << std::endl;
+    std::vector<RunInfo> initialRunsR2 = createInitialRuns(inputFileR2, memoryBlockLimit, "R2");
     RunInfo sortedR2 = mergeAllRuns(initialRunsR2, "R2");
-    cout << "R2 fully sorted into file: " << sortedR2.filename << endl;
+    std::cout << "R2 fully sorted into file: " << sortedR2.filename << std::endl;
 
     // Final bag union
-    cout << "\nPerforming bag union..." << endl;
-    string outputFile = "output/bag_union_output.txt";
+    std::cout << "\nPerforming bag union..." << std::endl;
+    std::string outputFile = "output/bag_union_output.txt";
     bagUnion(sortedR1, sortedR2, outputFile);
 
-    cout << "Bag union complete. Output written to: " << outputFile << endl;
+    std::cout << "Bag union complete. Output written to: " << outputFile << std::endl;
 
     return 0;
 }
@@ -145,7 +143,7 @@ int main()
 
 // parseRecordFromLine
 
-Record parseRecordFromLine(const string& line)
+Record parseRecordFromLine(const std::string& line)
 {
     Record r;
 
@@ -190,7 +188,7 @@ bool readBlock(std::ifstream& inputFile, Block& block)
 
 std::vector<Record> readChunk(std::ifstream& inputFile, int memoryBlockLimit)
 {
-    vector<Record> chunk;
+    std::vector<Record> chunk;
 
     // Loop for up to memoryBlockLimit blocks
     for (int i = 0; i < memoryBlockLimit; i++)
@@ -224,7 +222,7 @@ void sortChunk(std::vector<Record>& chunk)
 }
 
 //writeRun
-RunInfo writeRun(const vector<Record>& chunk, int runNumber, const string& prefix)
+RunInfo writeRun(const std::vector<Record>& chunk, int runNumber, const std::string& prefix)
 {
     RunInfo run;
 
@@ -253,15 +251,15 @@ RunInfo writeRun(const vector<Record>& chunk, int runNumber, const string& prefi
 
 
 //createInitialRuns
-std::vector<RunInfo> createInitialRuns(const string& inputFilename, int memoryBlockLimit, const string& prefix)
+std::vector<RunInfo> createInitialRuns(const std::string& inputFilename, int memoryBlockLimit, const std::string& prefix)
 {
-    vector<RunInfo> runs;
+    std::vector<RunInfo> runs;
 
     std::ifstream inputFile(inputFilename);
 
     if (!inputFile)
     {
-        std::cerr << "Error: could not open " << inputFilename << endl;
+        std::cerr << "Error: could not open " << inputFilename << std::endl;
         return runs;
     }
 
@@ -290,11 +288,9 @@ std::vector<RunInfo> createInitialRuns(const string& inputFilename, int memoryBl
     return runs;
 }
 
-
 // ======================================================
 // Function Definitions - phase 2
 // ======================================================
-
 
 bool readNextBlockFromRun(std::ifstream& runFile, Block& block)
 {
@@ -305,9 +301,9 @@ bool readNextBlockFromRun(std::ifstream& runFile, Block& block)
     std::string line;
 
     // 3. loop:
-    //    while block not full AND getline succeeds
+    // while block not full AND getline succeeds
 
-    while (block.count < Block::RECORDS_PER_BLOCK && getline(runFile, line))
+    while (block.count < RECORDS_PER_BLOCK && getline(runFile, line))
     {   
         // 4. parse line into Record
         Record r = parseRecordFromLine(line);
@@ -328,7 +324,6 @@ bool getNextRecordFromRun(std::ifstream& runFile, Block& block, int& index, Reco
     if (index >= block.count)
     {
         bool hasMore = readNextBlockFromRun(runFile, block);
-
         if (!hasMore)
         {
             return false; // no more data in this run
@@ -346,11 +341,11 @@ bool getNextRecordFromRun(std::ifstream& runFile, Block& block, int& index, Reco
     return true;
 }
 
-RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const string& prefix, int passNumber, int outputRunNumber)
+RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string& prefix, int passNumber, int outputRunNumber)
 {
     RunInfo outputRun;
     outputRun.runNumber = outputRunNumber;
-    outputRun.filename = "runs/merged/" + prefix + "_pass_" + to_string(passNumber) + "_run_" + to_string(outputRunNumber) + ".txt";
+    outputRun.filename = "runs/merged/" + prefix + "_pass_" + std::to_string(passNumber) + "_run_" + std::to_string(outputRunNumber) + ".txt";
 
     std::ifstream fileA(runA.filename);
     std::ifstream fileB(runB.filename);
@@ -424,7 +419,7 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const string& pre
     return outputRun;
 }
 
-std::vector<RunInfo> mergePass(const vector<RunInfo>& inputRuns, const string& prefix, int passNumber)
+std::vector<RunInfo> mergePass(const std::vector<RunInfo>& inputRuns, const std::string& prefix, int passNumber)
 {
     std::vector<RunInfo> outputRuns;
     int outputRunNumber = 0;
@@ -446,7 +441,7 @@ std::vector<RunInfo> mergePass(const vector<RunInfo>& inputRuns, const string& p
     return outputRuns;
 }
 
-RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const string& prefix)
+RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string& prefix)
 {
     std::vector<RunInfo> currentRuns = initialRuns;
     int passNumber = 0;
@@ -508,7 +503,7 @@ void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count
     outFile << '\n';
 }
 
-void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const string& outputFilename)
+void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::string& outputFilename)
 {
     std::ifstream fileR1(sortedR1.filename);
     std::ifstream fileR2(sortedR2.filename);
@@ -604,7 +599,7 @@ void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const string& ou
 CompactRecord makeCompactRecord(const Record& record, int& count)
 {
     CompactRecord cr;
-    cr.data = string(record.data, Record::SIZE) + ":" + to_string(count);
+    cr.data = std::string(record.data, Record::SIZE) + ":" + std::to_string(count);
     return cr;
 }
 
