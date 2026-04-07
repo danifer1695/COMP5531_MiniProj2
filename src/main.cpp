@@ -42,7 +42,7 @@ struct Record
     //to c++ string
     std::string toString() const { return std::string(data, BYTES_PER_RECORD); }
 
-    //Check if empty
+    //Check if internal buffer 'data' is empty
     bool isEmpty() const {
         for (int i = 0; i < BYTES_PER_RECORD; i++) {
             if (data[i] != ' ') return false;
@@ -63,15 +63,10 @@ struct RunInfo
     int runNumber;
 };
 
-struct CompactRecord
-{
-    std::string data;   // stores "tuple:count"
-};
-
 struct CompactBlock
 {
     static const int MAX = 40;
-    CompactRecord records[MAX];
+    std::string records[MAX];
     int count = 0;
 };
 
@@ -105,7 +100,8 @@ void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count
 void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::string& outputFilename);
 
 //helpers
-CompactRecord makeCompactRecord(const Record& record, int& count);
+// CompactRecord makeCompactRecord(const Record& record, int& count);
+std::string makeCompactRecord(const Record& record, int& count);
 void flushCompactBlock(std::ofstream& outFile, CompactBlock& block);
 void appendCompactRecord(std::ofstream& outFile, CompactBlock& block, const Record& record, int count);
 
@@ -712,10 +708,10 @@ void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::strin
 }
 
 // helper functions
-CompactRecord makeCompactRecord(const Record& record, int& count)
+std::string makeCompactRecord(const Record& record, int& count)
 {
-    CompactRecord cr;
-    cr.data = std::string(record.data, BYTES_PER_RECORD) + ":" + std::to_string(count);
+    std::string cr;
+    cr = std::string(record.data, BYTES_PER_RECORD) + ":" + std::to_string(count);
     return cr;
 }
 
@@ -723,7 +719,7 @@ void flushCompactBlock(std::ofstream& outFile, CompactBlock& block)
 {
     for (int i = 0; i < block.count; i++)
     {
-        outFile << block.records[i].data << '\n';
+        outFile << block.records[i] << '\n';
     }
 
     block.count = 0;
