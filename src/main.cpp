@@ -6,8 +6,6 @@
 #include <cstring>      // memset, memcpy
 #include <filesystem>
 
-namespace fs = std::filesystem;
-
 // ======================================================
 // Constants
 // ======================================================
@@ -23,16 +21,21 @@ constexpr int BYTES_PER_RECORD = 100;
 struct Record
 {
     char data[BYTES_PER_RECORD];	//actual content of the tuple, formated as a C-style string (an array of chars)
-    Record() {std::memset(data, 0, BYTES_PER_RECORD);}
+    Record() {std::memset(data, '0', BYTES_PER_RECORD); }
 
     //overridden < operator to be able to use on std::sort
-    bool operator<(const Record& other) const {return std::memcmp(data, other.data, SIZE) < 0;}
+    bool operator<(const Record& other) const {return std::memcmp(data, other.data, BYTES_PER_RECORD) < 0;}
 
     //to c++ string
-    std::string toString() const { return std::string(data, SIZE); }
+    std::string toString() const { return std::string(data, BYTES_PER_RECORD); }
 
     //Check if empty
-    bool isEmpty() const;
+    bool isEmpty() const {
+        for (int i = 0; i < BYTES_PER_RECORD; i++) {
+            if (data[i] != '0') return false;
+        }
+        return true;
+    };
 };
 
 struct Block
@@ -43,13 +46,13 @@ struct Block
 
 struct RunInfo
 {
-    string filename;
+    std::string filename;
     int runNumber;
 };
 
 struct CompactRecord
 {
-    string data;   // stores "tuple:count"
+    std::string data;   // stores "tuple:count"
 };
 
 struct CompactBlock
@@ -86,41 +89,34 @@ RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string&
 // ---- Bag Union ----
 
 int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord);
-void writeCompactRecord(std::ofstream& outFile, const Record& record, int count);
+void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count);
 void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::string& outputFilename);
 
 //helpers
-CompactRecord makeCompactRecord(const Record& record, int count);
+CompactRecord makeCompactRecord(const Record& record, int& count);
 void flushCompactBlock(std::ofstream& outFile, CompactBlock& block);
 void appendCompactRecord(std::ofstream& outFile, CompactBlock& block, const Record& record, int count);
 
 
-// ======================================================
-// Main
-// ======================================================
-int main()
+void Test(const std::string& R1Path, const std::string& R2Path, const int& M)
 {
     // set up file system output folders
-    fs::create_directory("runs");
-    fs::create_directory("runs/R1");
-    fs::create_directory("runs/R2");
-    fs::create_directory("runs/merged");
-    fs::create_directory("output");
-
-    // Input relation files
-    std::string inputFileR1 = "R1.txt";
-    std::string inputFileR2 = "R2.txt";
-    int memoryBlockLimit = 5;
+    std::cout << "=======================================" << std::endl;
+    std::filesystem::create_directory("runs");
+    std::filesystem::create_directory("runs/R1");
+    std::filesystem::create_directory("runs/R2");
+    std::filesystem::create_directory("runs/merged");
+    std::filesystem::create_directory("output");
 
     // Phase 1 + Phase 2 for R1
     std::cout << "Processing R1..." << std::endl;
-    std::vector<RunInfo> initialRunsR1 = createInitialRuns(inputFileR1, memoryBlockLimit, "R1");
+    std::vector<RunInfo> initialRunsR1 = createInitialRuns(R1Path, M, "R1");
     RunInfo sortedR1 = mergeAllRuns(initialRunsR1, "R1");
     std::cout << "R1 fully sorted into file: " << sortedR1.filename << std::endl;
 
     // Phase 1 + Phase 2 for R2
     std::cout << "\nProcessing R2..." << std::endl;
-    std::vector<RunInfo> initialRunsR2 = createInitialRuns(inputFileR2, memoryBlockLimit, "R2");
+    std::vector<RunInfo> initialRunsR2 = createInitialRuns(R2Path, M, "R2");
     RunInfo sortedR2 = mergeAllRuns(initialRunsR2, "R2");
     std::cout << "R2 fully sorted into file: " << sortedR2.filename << std::endl;
 
@@ -130,35 +126,50 @@ int main()
     bagUnion(sortedR1, sortedR2, outputFile);
 
     std::cout << "Bag union complete. Output written to: " << outputFile << std::endl;
+}
+
+// ======================================================
+// Main
+// ======================================================
+int main()
+{
+    std::cout << "Hello" << std::endl;
+    std::string R1_path;
+    std::string R2_path;
+
+    //Records: 30000, M: 101
+    R1_path = "../data/T1_15000.txt";
+    R2_path = "../data/T2_15000.txt";
+    Test(R1_path, R2_path, 101);
+
+    //Records: 30000, M: 5
+    R1_path = "../data/T1_15000.txt";
+    R2_path = "../data/T2_15000.txt";
+    Test(R1_path, R2_path, 101);
 
     return 0;
 }
-
-
-
 
 // ======================================================
 // Function Definitions - phase 1
 // ======================================================
 
 // parseRecordFromLine
-
 Record parseRecordFromLine(const std::string& line)
 {
     Record r;
 
     // Fill with spaces
-    memset(r.data, ' ', Record::SIZE);
+    memset(r.data, ' ', BYTES_PER_RECORD);
 
     // Determine how many bytes we can safely copy
-    int bytesToCopy = min((int)line.size(), Record::SIZE);
+    int bytesToCopy = std::min((int)line.size(), BYTES_PER_RECORD);
 
     // Copy line into r.data (max 100 bytes)
     memcpy(r.data, line.c_str(), bytesToCopy);
 
     return r;
 }
-
 
 //readBlock
 bool readBlock(std::ifstream& inputFile, Block& block)
@@ -184,8 +195,8 @@ bool readBlock(std::ifstream& inputFile, Block& block)
     // Return true if we read anything
     return block.count > 0;
 }
-//readChunk
 
+//readChunk
 std::vector<Record> readChunk(std::ifstream& inputFile, int memoryBlockLimit)
 {
     std::vector<Record> chunk;
@@ -222,7 +233,10 @@ void sortChunk(std::vector<Record>& chunk)
 }
 
 //writeRun
-RunInfo writeRun(const std::vector<Record>& chunk, int runNumber, const std::string& prefix)
+RunInfo writeRun(
+    const std::vector<Record>& chunk, 
+    int runNumber,  
+    const std::string& prefix)
 {
     RunInfo run;
 
@@ -239,7 +253,7 @@ RunInfo writeRun(const std::vector<Record>& chunk, int runNumber, const std::str
 
     for (const auto& record : chunk)
     {
-        outputFile.write(record.data, Record::SIZE);
+        outputFile.write(record.data, BYTES_PER_RECORD);
         outputFile << '\n';
     }
 
@@ -251,7 +265,10 @@ RunInfo writeRun(const std::vector<Record>& chunk, int runNumber, const std::str
 
 
 //createInitialRuns
-std::vector<RunInfo> createInitialRuns(const std::string& inputFilename, int memoryBlockLimit, const std::string& prefix)
+std::vector<RunInfo> createInitialRuns(
+    const std::string& inputFilename, 
+    int memoryBlockLimit, 
+    const std::string& prefix)
 {
     std::vector<RunInfo> runs;
 
@@ -345,7 +362,10 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string
 {
     RunInfo outputRun;
     outputRun.runNumber = outputRunNumber;
-    outputRun.filename = "runs/merged/" + prefix + "_pass_" + std::to_string(passNumber) + "_run_" + std::to_string(outputRunNumber) + ".txt";
+    outputRun.filename = "runs/merged/" + prefix + 
+        "_pass_" + std::to_string(passNumber) + 
+        "_run_" + std::to_string(outputRunNumber) + 
+        ".txt";
 
     std::ifstream fileA(runA.filename);
     std::ifstream fileB(runB.filename);
@@ -386,13 +406,13 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string
     {
         if (recordA < recordB)
         {
-            outFile.write(recordA.data, Record::SIZE);
+            outFile.write(recordA.data, BYTES_PER_RECORD);
             outFile << '\n';
             hasA = getNextRecordFromRun(fileA, blockA, indexA, recordA);
         }
         else
         {
-            outFile.write(recordB.data, Record::SIZE);
+            outFile.write(recordB.data, BYTES_PER_RECORD);
             outFile << '\n';
             hasB = getNextRecordFromRun(fileB, blockB, indexB, recordB);
         }
@@ -400,14 +420,14 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string
 
     while (hasA)
     {
-        outFile.write(recordA.data, Record::SIZE);
+        outFile.write(recordA.data, BYTES_PER_RECORD);
         outFile << '\n';
         hasA = getNextRecordFromRun(fileA, blockA, indexA, recordA);
     }
 
     while (hasB)
     {
-        outFile.write(recordB.data, Record::SIZE);
+        outFile.write(recordB.data, BYTES_PER_RECORD);
         outFile << '\n';
         hasB = getNextRecordFromRun(fileB, blockB, indexB, recordB);
     }
@@ -467,8 +487,6 @@ RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string&
 // ======================================================
 // Function Definitions - Bag Union
 // ======================================================
-
-
 int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord)
 {
     // currentRecord is the first copy
@@ -479,7 +497,7 @@ int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Reco
     hasRecord = getNextRecordFromRun(runFile, block, index, currentRecord);
 
     // Keep counting while the next record matches the target
-    while (hasRecord && currentRecord == target)
+    while (hasRecord && std::memcmp(currentRecord.data, target.data, BYTES_PER_RECORD) == 0)
     {
         count++;
         hasRecord = getNextRecordFromRun(runFile, block, index, currentRecord);
@@ -491,7 +509,7 @@ int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Reco
 void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count)
 {
     // Write the full 100-byte record
-    std::outFile.write(record.data, Record::SIZE - 1);
+    outFile.write(record.data, BYTES_PER_RECORD - 1);
 
     // Separator between tuple and count
     outFile << ":";
@@ -599,7 +617,7 @@ void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::strin
 CompactRecord makeCompactRecord(const Record& record, int& count)
 {
     CompactRecord cr;
-    cr.data = std::string(record.data, Record::SIZE) + ":" + std::to_string(count);
+    cr.data = std::string(record.data, BYTES_PER_RECORD) + ":" + std::to_string(count);
     return cr;
 }
 
@@ -607,13 +625,13 @@ void flushCompactBlock(std::ofstream& outFile, CompactBlock& block)
 {
     for (int i = 0; i < block.count; i++)
     {
-        std::outFile << block.records[i].data << '\n';
+        outFile << block.records[i].data << '\n';
     }
 
     block.count = 0;
 }
 
-void appendCompactRecord(std::ofstream& outFile, CompactBlock& block, const Record& record, int& count)
+void appendCompactRecord(std::ofstream& outFile, CompactBlock& block, const Record& record, int count)
 {
     block.records[block.count] = makeCompactRecord(record, count);
     block.count++;
