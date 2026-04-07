@@ -12,10 +12,18 @@
 // Constants
 // ======================================================
 
+enum TEST_SIZE
+{
+    SMALL,
+    MEDIUM,
+    LARGE
+};
+
 constexpr int RECORDS_PER_BLOCK = 40;
 constexpr int BYTES_PER_RECORD = 100;
 bool cleanTemps = true;
 bool logProgress = true;
+TEST_SIZE testSize = SMALL;
 
 
 // ======================================================
@@ -161,9 +169,18 @@ void ProcessArgs(int argc, char* argv[])
 
     if(argc > 2)
     {
-        std::string cleanup = argv[2];
-        if(cleanup == "log") logProgress = true;
-        else if(cleanup == "no-log") logProgress = false;
+        std::string log = argv[2];
+        if(log == "log") logProgress = true;
+        else if(log == "no-log") logProgress = false;
+        else std::cout << "Invalid argument [2]" << std::endl;
+    }
+
+    if(argc > 3)
+    {
+        std::string test = argv[3];
+        if(test == "small") testSize = SMALL;
+        else if(test == "medium") testSize = MEDIUM;
+        else if(test == "large") testSize = LARGE;
         else std::cout << "Invalid argument [2]" << std::endl;
     }
 }
@@ -184,21 +201,27 @@ int main(int argc, char* argv[])
     //Records: 30000, M: 5
     Test(R1_path, R2_path, 5, 30000);
 
-    //Records: 240000, M: 101
-    R1_path = "../data/T1_120000.txt";
-    R2_path = "../data/T2_120000.txt";
-    Test(R1_path, R2_path, 101, 240000);
+    if(testSize == MEDIUM || testSize == LARGE)
+    {
+        //Records: 240000, M: 101
+        R1_path = "../data/T1_120000.txt";
+        R2_path = "../data/T2_120000.txt";
+        Test(R1_path, R2_path, 101, 240000);
+    
+        //Records: 240000, M: 5
+        Test(R1_path, R2_path, 5, 240000);
+    }
 
-    //Records: 240000, M: 5
-    Test(R1_path, R2_path, 5, 240000);
+    if(testSize == LARGE)
+    {
+        //Records: 240000, M: 101
+        R1_path = "../data/T1_960000.txt";
+        R2_path = "../data/T2_960000.txt";
+        Test(R1_path, R2_path, 101, 960000);
 
-    //Records: 240000, M: 101
-    R1_path = "../data/T1_960000.txt";
-    R2_path = "../data/T2_960000.txt";
-    //Test(R1_path, R2_path, 101, 960000);
-
-    //Records: 240000, M: 5
-    //Test(R1_path, R2_path, 5, 960000);
+        //Records: 240000, M: 5
+        Test(R1_path, R2_path, 5, 960000);
+    }
 
     return 0;
 }
