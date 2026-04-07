@@ -699,8 +699,11 @@ void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::strin
 
     fileR1.close();
     fileR2.close();
+    
+    //clean up after we're done with temp files
     if(cleanTemps) std::remove(sortedR1.filename.c_str());
     if(cleanTemps) std::remove(sortedR2.filename.c_str());
+
     outFile.close();
 }
 
