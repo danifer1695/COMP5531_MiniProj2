@@ -65,8 +65,6 @@ struct CompactBlock
 // ============================================================================================================
 // Function Declarations
 // ============================================================================================================
-// A block holds up to 40 records.
-// count tells us how many valid records are currently in it.
 
 // ---- Parsing ----
 Record parseRecordFromLine(const std::string& line);
@@ -286,7 +284,6 @@ std::vector<Record> readChunk(std::ifstream& inputFile, int memoryBlockLimit)
         // Copy valid records from block into chunk
         for (int j = 0; j < block.count; j++)
         {
-            // TODO: push block.records[j] into chunk
             chunk.push_back(block.records[j]);
         }
     }
@@ -377,32 +374,33 @@ std::vector<RunInfo> createInitialRuns(
 // Function Definitions - phase 2
 // ============================================================================================================
 
+//readNextBlockFromRun
 bool readNextBlockFromRun(std::ifstream& runFile, Block& block)
 {
-    // 1. reset block.count
+    // reset block.count
     block.count = 0;
 
-    // 2. create string line
+    // create string line
     std::string line;
 
-    // 3. loop:
+    // loop
     // while block not full AND getline succeeds
 
     while (block.count < RECORDS_PER_BLOCK && getline(runFile, line))
     {   
-        // 4. parse line into Record
+        // parse line into Record
         Record r = parseRecordFromLine(line);
 
-        // 5. store into block.records
+        // store into block.records
         block.records[block.count] = r;
 
-        // 6. increment count
+        // increment count
         block.count++;
     }
     return block.count > 0;
 
 }
-
+//getNextRecordFromRun
 bool getNextRecordFromRun(std::ifstream& runFile, Block& block, int& index, Record& record)
 {
     // If current block is exhausted, load next block
@@ -426,6 +424,7 @@ bool getNextRecordFromRun(std::ifstream& runFile, Block& block, int& index, Reco
     return true;
 }
 
+// mergeTwoRuns
 RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string& prefix, int passNumber, int outputRunNumber)
 {
     RunInfo outputRun;
@@ -520,6 +519,7 @@ RunInfo mergeTwoRuns(const RunInfo& runA, const RunInfo& runB, const std::string
     return outputRun;
 }
 
+// mergePass
 std::vector<RunInfo> mergePass(const std::vector<RunInfo>& inputRuns, const std::string& prefix, int passNumber)
 {
     std::vector<RunInfo> outputRuns;
@@ -542,6 +542,7 @@ std::vector<RunInfo> mergePass(const std::vector<RunInfo>& inputRuns, const std:
     return outputRuns;
 }
 
+//mergeAllRuns
 RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string& prefix)
 {
     std::vector<RunInfo> currentRuns = initialRuns;
@@ -568,6 +569,8 @@ RunInfo mergeAllRuns(const std::vector<RunInfo>& initialRuns, const std::string&
 // ============================================================================================================
 // Function Definitions - Bag Union
 // ============================================================================================================
+
+//countCurrentRunCopies
 int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Record& currentRecord, bool& hasRecord)
 {
     // currentRecord is the first copy
@@ -587,6 +590,7 @@ int countCurrentRunCopies(std::ifstream& runFile, Block& block, int& index, Reco
     return count;
 }
 
+// writeCompactRecord
 void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count)
 {
     // Write the full 100-byte record
@@ -602,6 +606,7 @@ void writeCompactRecord(std::ofstream& outFile, const Record& record, int& count
     outFile << '\n';
 }
 
+//bagUnion
 void bagUnion(const RunInfo& sortedR1, const RunInfo& sortedR2, const std::string& outputFilename)
 {
     std::ifstream fileR1(sortedR1.filename);
